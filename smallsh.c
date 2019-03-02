@@ -94,11 +94,11 @@ void shell_process(){
 						perror("Fork failed!");
 						exit(1); break;
 					case 0:
+						 sigaction(SIGINT, &SIGINT_action, NULL);
 						 sh_launch(cmd);
 						 break;
 					default:
 					 	if (cmd->bg != true){
-							sigaction(SIGINT, &SIGINT_action, NULL);
 							waitpid(spawnid, &bg_status, 0);
 						}
 						else{
