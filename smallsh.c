@@ -51,13 +51,15 @@ void shell_process(){
 	
 	int bg_status = 0;
 	bool loop = true;
+	
+	struct sigaction SIGINT_action = {0};
+	struct sigaction ignore_action = {0};
+	SIGINT_action.sa_handler = SIG_DFL;
+	ignore_action.sa_handler = SIG_IGN;
+	
 	while(loop){
 		// Shell Variables
-		struct sigaction SIGINT_action, ignore_action = {0};
 		
-		SIGINT_action.sa_handler = SIG_DFL;
-		ignore_action.sa_handler = SIG_IGN;
-
 		sigaction(SIGINT, &ignore_action, NULL);
 		
 		// Prompt Variables
