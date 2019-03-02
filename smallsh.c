@@ -27,39 +27,45 @@ struct command {
 
 void shell_process();
 struct command* parse(char* string);
-void prompt();
-int status();
-bool cd(char* path);
 int sh_exit();
 void print_command(struct command*);
-void sh_status(int* status);
+void sh_status();
 int handle_command(struct command* cmd);
 void sh_chdir(struct command* cmd);
 void sh_launch(struct command* cmd);
 char* expand(char* string, char* pattern);
+void sh_reap();
 
 volatile bool foreground_mode = false;
-volatile pid_t recent_pid;
+volatile bool signaled = false;
+
+int bg_status = 0;
 
 static void sig_stp(int sig){
-	char* message;
+	signaled = !signaled;
 	foreground_mode = !foreground_mode;
-	if (foreground_mode){
-		message = "\nEntering foreground-only mode (& is now ignored)\n";
-		write(STDOUT_FILENO, message, 50);
-	}
-	else{
-		message = "\nExiting fore-ground only mode\n";
-		write(STDOUT_FILENO, message, 31);
-	}
-
 }
-
 
 int main(){
 	shell_process();
 }
 
+void fg_mode(){
+	if (!signaled){
+		return;
+	}
+	if(foreground_mode){
+		printf("\nEntering foreground-only mode (& is now ignored)\n");
+		fflush(stdout);
+	}
+	else{
+		printf("\nExiting foreground-only mode\n");
+		fflush(stdout);
+	}
+}
+void sh_reap(){
+	// loop through all pids and kill them
+}
 
 void shell_process(){
 	/* listen for commands
@@ -68,9 +74,7 @@ void shell_process(){
 	* when handling redirection ,just pass ls into exec, so get rid of redir symbol and des/source
 	*/
 	
-	int bg_status = 0;
 	bool loop = true;
-	
 	struct sigaction SIGINT_action = {0};
 	struct sigaction ignore_action = {0};
 	struct sigaction SIGSTP_action = {0};
@@ -87,15 +91,22 @@ void shell_process(){
 	sigaction(SIGTSTP, &SIGSTP_action, NULL);
 
 	while(loop){
-		// Shell Variables
 		
+		sigaction(SIGTSTP, &SIGSTP_action, NULL);
 		// Prompt Variables
 		char *line = NULL;
 		size_t len = BUFFER;
 		ssize_t nread;
 		
+		fg_mode();
+
+		if(signaled){
+			signaled = false;
+		}
+
 		printf(": ");
 		fflush(stdout);
+
 		while((nread = getline(&line, &len, stdin)) == -1){
 			clearerr(stdin);
 		}
@@ -110,11 +121,13 @@ void shell_process(){
 
 		// Built-in function status
 		else if (strcmp(line, "status\n") == 0 || strcmp(line, "status &\n") == 0){
-			sh_status(&bg_status);	
+			sh_status();	
 		}
-
+		
 		else{
 			struct command* cmd = parse(line);
+			if (foreground_mode){cmd->bg = false;}
+			
 			if(handle_command(cmd)){
 				pid_t spawnid;
 				spawnid = fork();
@@ -123,16 +136,23 @@ void shell_process(){
 						perror("Fork failed!");
 						exit(1); break;
 					case 0:
-						 if(!cmd->bg){sigaction(SIGINT, &SIGINT_action, NULL);}
+						 sigaction(SIGTSTP, &ignore_action, NULL);
+						 if(!cmd->bg){
+								sigaction(SIGINT, &SIGINT_action, NULL);
+						 }
 						 sh_launch(cmd);
 						 break;
 					default:
-					 	if (cmd->bg != true){
+					 	// Foreground
+						if (cmd->bg != true){
 							waitpid(spawnid, &bg_status, 0);
 							if(WIFSIGNALED(bg_status)){
-								sh_status(&bg_status);
+								sh_status();
 							}
+							fflush(stdout);
 						}
+						
+						// Background
 						else{
 							printf("background process %d has started\n", spawnid);
 							fflush(stdout);
@@ -149,7 +169,7 @@ void shell_process(){
 		while (zombies > 0){
 			printf("background process %d is done: ", zombies);
 			fflush(stdout);
-			sh_status(&bg_status);
+			sh_status();
 			zombies = waitpid(-1, &bg_status, WNOHANG);
 		}
 		free(line);
@@ -214,14 +234,14 @@ void sh_chdir(struct command* cmd){
 	}
 }
 
-void sh_status(int* status){
-	if (WIFEXITED(*status)){
-		printf("exit value: %d\n", WEXITSTATUS(*status));
+void sh_status(){
+	if (WIFEXITED(bg_status)){
+		printf("exit value: %d\n", WEXITSTATUS(bg_status));
 		fflush(stdout);
 	}
 
-	else if (WIFSIGNALED(*status)){
-		printf("terminated by signal %d\n", WTERMSIG(*status));
+	else if (WIFSIGNALED(bg_status)){
+		printf("terminated by signal %d\n", WTERMSIG(bg_status));
 		fflush(stdout);	
 	}
 
