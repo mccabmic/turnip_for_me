@@ -54,13 +54,18 @@ void shell_process(){
 	
 	struct sigaction SIGINT_action = {0};
 	struct sigaction ignore_action = {0};
+	struct sigaction SIGSTP_action = {0};
+
+	SIGSTP_action.sa_handler = SIG_IGN;
 	SIGINT_action.sa_handler = SIG_DFL;
 	ignore_action.sa_handler = SIG_IGN;
+	sigaction(SIGINT, &ignore_action, NULL);
 	
 	while(loop){
 		// Shell Variables
 		
 		sigaction(SIGINT, &ignore_action, NULL);
+		sigaction(SIGTSTP, &SIGSTP_action, NULL);
 		
 		// Prompt Variables
 		char *line = NULL;
@@ -96,7 +101,7 @@ void shell_process(){
 						perror("Fork failed!");
 						exit(1); break;
 					case 0:
-						 sigaction(SIGINT, &SIGINT_action, NULL);
+						 if(!cmd->bg){sigaction(SIGINT, &SIGINT_action, NULL);}
 						 sh_launch(cmd);
 						 break;
 					default:
