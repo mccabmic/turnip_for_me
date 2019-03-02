@@ -24,6 +24,7 @@ struct command {
 	bool bg;
 };
 
+
 void shell_process();
 struct command* parse(char* string);
 void prompt();
@@ -36,6 +37,24 @@ int handle_command(struct command* cmd);
 void sh_chdir(struct command* cmd);
 void sh_launch(struct command* cmd);
 char* expand(char* string, char* pattern);
+
+volatile bool foreground_mode = false;
+volatile pid_t recent_pid;
+
+static void sig_stp(int sig){
+	char* message;
+	foreground_mode = !foreground_mode;
+	if (foreground_mode){
+		message = "\nEntering foreground-only mode (& is now ignored)\n";
+		write(STDOUT_FILENO, message, 50);
+	}
+	else{
+		message = "\nExiting fore-ground only mode\n";
+		write(STDOUT_FILENO, message, 31);
+	}
+
+}
+
 
 int main(){
 	shell_process();
@@ -56,16 +75,19 @@ void shell_process(){
 	struct sigaction ignore_action = {0};
 	struct sigaction SIGSTP_action = {0};
 
-	SIGSTP_action.sa_handler = SIG_IGN;
+	SIGINT_action.sa_flags = 0;
+	ignore_action.sa_flags = 0;
+	SIGSTP_action.sa_flags = 0;
+
+	SIGSTP_action.sa_handler = &sig_stp;
 	SIGINT_action.sa_handler = SIG_DFL;
 	ignore_action.sa_handler = SIG_IGN;
-	sigaction(SIGINT, &ignore_action, NULL);
 	
+	sigaction(SIGINT, &ignore_action, NULL);
+	sigaction(SIGTSTP, &SIGSTP_action, NULL);
+
 	while(loop){
 		// Shell Variables
-		
-		sigaction(SIGINT, &ignore_action, NULL);
-		sigaction(SIGTSTP, &SIGSTP_action, NULL);
 		
 		// Prompt Variables
 		char *line = NULL;
