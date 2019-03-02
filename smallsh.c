@@ -100,6 +100,9 @@ void shell_process(){
 					default:
 					 	if (cmd->bg != true){
 							waitpid(spawnid, &bg_status, 0);
+							if(WIFSIGNALED(bg_status)){
+								sh_status(&bg_status);
+							}
 						}
 						else{
 							printf("background process %d has started\n", spawnid);
