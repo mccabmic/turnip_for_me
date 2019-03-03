@@ -8,7 +8,6 @@ OBJS = smallsh.o util.o
 SRCS = smallsh.c util.c
 HEADERS = util.h
 
-
 smallsh: ${OBJS} ${HEADERS}
 	${CXX} ${OBJS} -o smallsh
 
