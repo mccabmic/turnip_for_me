@@ -21,7 +21,7 @@ struct command* parse(char string[BUFFER]){
 	char* token;
 	// Set command
 	token = strtok(string, delimit);
-	memcpy(cmd->command, token, sizeof(token));
+	strncpy(cmd->command, token, sizeof(cmd->command));
 	
 	size_t arg_count = 0;
 	// Start setting loop

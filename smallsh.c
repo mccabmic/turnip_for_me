@@ -52,10 +52,9 @@ void sh_reap(){
 }
 
 void sh_process(){
-	bool loop = true;
-	struct sigaction SIGINT_action = {0};
-	struct sigaction ignore_action = {0};
-	struct sigaction SIGSTP_action = {0};
+	struct sigaction SIGINT_action = {{0}};
+	struct sigaction ignore_action = {{0}};
+	struct sigaction SIGSTP_action = {{0}};
 
 	SIGINT_action.sa_flags = 0;
 	ignore_action.sa_flags = 0;
@@ -65,7 +64,7 @@ void sh_process(){
 	SIGINT_action.sa_handler = SIG_DFL;
 	ignore_action.sa_handler = SIG_IGN;
 	
-	while(loop){
+	while(true){
 		sigaction(SIGINT, &ignore_action, NULL);
 		sigaction(SIGTSTP, &SIGSTP_action, NULL);		
 		
