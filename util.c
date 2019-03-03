@@ -1,5 +1,6 @@
 #include "util.h"
 
+// Parse and create the cmd structure
 struct command* parse(char string[BUFFER]){
 	const char delimit[] = " \t\r\n\v\f";
 	struct command* cmd = malloc(sizeof(struct command));
@@ -53,6 +54,7 @@ struct command* parse(char string[BUFFER]){
 	return cmd;
 }
 
+// Print a command, used in debugging.
 void print_command(struct command* cmd){
 	printf("command: %s\n", cmd->command);
 	printf("output: %s\n", cmd->output);
@@ -62,33 +64,48 @@ void print_command(struct command* cmd){
 	printf("\n");
 }
 
-//https://stackoverflow.com/questions/779875/what-is-the-function-to-replace-string-in-c
+// Code for expanding $$
+// Source: https://stackoverflow.com/questions/779875/what-is-the-function-to-replace-string-in-c
+// Made some modifications to this so it doesn't create a memory leak
 char* expand(char* string, char* pattern){
 	
 	char pid_string[PID_LIM] = {0};
 	sprintf(pid_string, "%ld", (long)getpid());
 
 	size_t new_string_size = strlen(string) + 1;
+	
+	// Create a blank string
 	char* new_string = malloc(new_string_size);
 	size_t offset = 0;
 	
 	char* delim;
+	
+	// Keep track of where the original string is in memory
 	char* in = string;
 	
+	// While $$ exists in the string
 	while ((delim = strstr(in, pattern))){
+		
+		// Copy everything up to the $$
 		memcpy(new_string + offset, in, delim - in);
 		offset += delim - in;
-
+		
+		// Move forward to after the $$ found
 		in = delim + strlen(pattern);
 		
+		// Reallocate the string size to fit the pid
 		new_string_size = new_string_size - strlen(pattern) + strlen(pid_string);
 		new_string = realloc(new_string, new_string_size);
-
+		
+		// Copy in the pid
 		memcpy(new_string + offset, pid_string, strlen(pid_string));
 		offset += strlen(pid_string);
 	}
-
+	
+	// Copy in the end of the string
 	strcpy(new_string + offset, in);
+	
+	// Free the old string
 	free(string);
 	return new_string;		
 }
