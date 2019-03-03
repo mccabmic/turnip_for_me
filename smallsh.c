@@ -129,7 +129,7 @@ void sh_process(){
 					}
 					// Child is running in background
 					else{
-						printf("background process %d has started\n", spawnid);
+						printf("%s: background process %d has started\n", __FILE__,spawnid);
 						fflush(stdout);
 						waitpid(spawnid, &bg_status, WNOHANG);
 					}
@@ -142,7 +142,7 @@ void sh_process(){
 		// REAP THE ZOMBIE CHILDRENZ
 		pid_t zombies = waitpid(-1, &bg_status, WNOHANG);
 		while (zombies > 0){
-			printf("background process %d is done: ", zombies);
+			printf("%s: background process %d is done: ", __FILE__,zombies);
 			fflush(stdout);
 			sh_status();
 			zombies = waitpid(-1, &bg_status, WNOHANG);
@@ -222,18 +222,13 @@ void sh_chdir(struct command* cmd){
 
 void sh_status(){
 	if (WIFEXITED(bg_status)){
-		printf("exit value: %d\n", WEXITSTATUS(bg_status));
+		printf("%s: exit value: %d\n", __FILE__, WEXITSTATUS(bg_status));
 		fflush(stdout);
 	}
 
 	else if (WIFSIGNALED(bg_status)){
-		printf("terminated by signal %d\n", WTERMSIG(bg_status));
+		printf("%s: terminated by signal %d\n", __FILE__, WTERMSIG(bg_status));
 		fflush(stdout);	
-	}
-
-	else {
-		printf("unknown error in __FILE__\n");
-		fflush(stdout);
 	}
 }
 

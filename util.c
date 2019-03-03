@@ -3,6 +3,7 @@
 struct command* parse(char string[BUFFER]){
 	const char delimit[] = " \t\r\n\v\f";
 	struct command* cmd = malloc(sizeof(struct command));
+
 	if (string[0] == '\n'){
 		memcpy(cmd->command, "BLANK", sizeof(cmd->command));
 		return cmd;
@@ -26,10 +27,10 @@ struct command* parse(char string[BUFFER]){
 	// Start setting loop
 	while(token != NULL){
 		if (strcmp(token, "<") == 0){
-			memcpy(cmd->input, strtok(NULL, delimit), sizeof(cmd->input));
+			strncpy(cmd->input, strtok(NULL, delimit), sizeof(cmd->input));
 		}
 		else if (strcmp(token, ">") == 0){
-			memcpy(cmd->output, strtok(NULL, delimit), sizeof(cmd->output));
+			strncpy(cmd->output, strtok(NULL, delimit), sizeof(cmd->output));
 		}
 		else{
 			cmd->args[arg_count] = token;
